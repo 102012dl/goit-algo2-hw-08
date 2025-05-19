@@ -1,0 +1,91 @@
+Завдання 2. Реалізація Rate Limiter з використанням алгоритму Throttling для обмеження частоти повідомлень у чаті 
+
+import time
+from typing import Dict
+import random
+
+class ThrottlingRateLimiter:
+    def __init__(self, min_interval: float = 10.0):
+        self.min_interval = min_interval
+        self.last_message_time: Dict[str, float] = {}
+
+    def can_send_message(self, user_id: str) -> bool:
+        current_time = time.time()
+        if user_id not in self.last_message_time:
+            return True
+        elapsed_time = current_time - self.last_message_time[user_id]
+        return elapsed_time >= self.min_interval
+
+    def record_message(self, user_id: str) -> bool:
+        if self.can_send_message(user_id):
+            self.last_message_time[user_id] = time.time()
+            return True
+        return False
+
+    def time_until_next_allowed(self, user_id: str) -> float:
+        current_time = time.time()
+        if user_id not in self.last_message_time:
+            return 0.0
+        elapsed_time = current_time - self.last_message_time[user_id]
+        remaining = self.min_interval - elapsed_time
+        return max(0.0, remaining)
+
+def test_throttling_limiter():
+    limiter = ThrottlingRateLimiter(min_interval=10.0)
+
+    print("\n=== Симуляція потоку повідомлень (Throttling) ===")
+    for message_id in range(1, 11):
+        user_id = message_id % 5 + 1
+
+        result = limiter.record_message(str(user_id))
+        wait_time = limiter.time_until_next_allowed(str(user_id))
+
+        print(f"Повідомлення {message_id:2d} | Користувач {user_id} | "
+              f"{'✓' if result else f'× (очікування {wait_time:.1f}с)'}")
+
+        time.sleep(random.uniform(0.1, 1.0))
+
+    print("\nОчікуємо 10 секунд...")
+    time.sleep(10)
+
+    print("\n=== Нова серія повідомлень після очікування ===")
+    for message_id in range(11, 21):
+        user_id = message_id % 5 + 1
+        result = limiter.record_message(str(user_id))
+        wait_time = limiter.time_until_next_allowed(str(user_id))
+        print(f"Повідомлення {message_id:2d} | Користувач {user_id} | "
+              f"{'✓' if result else f'× (очікування {wait_time:.1f}с)'}")
+        time.sleep(random.uniform(0.1, 1.0))
+
+if __name__ == "__main__":
+    test_throttling_limiter()
+
+
+
+
+
+=== Симуляція потоку повідомлень (Throttling) ===
+Повідомлення  1 | Користувач 2 | ✓
+Повідомлення  2 | Користувач 3 | ✓
+Повідомлення  3 | Користувач 4 | ✓
+Повідомлення  4 | Користувач 5 | ✓
+Повідомлення  5 | Користувач 1 | ✓
+Повідомлення  6 | Користувач 2 | × (очікування 7.0с)
+Повідомлення  7 | Користувач 3 | × (очікування 7.2с)
+Повідомлення  8 | Користувач 4 | × (очікування 6.7с)
+Повідомлення  9 | Користувач 5 | × (очікування 6.7с)
+Повідомлення 10 | Користувач 1 | × (очікування 6.3с)
+
+Очікуємо 10 секунд...
+
+=== Нова серія повідомлень після очікування ===
+Повідомлення 11 | Користувач 2 | ✓
+Повідомлення 12 | Користувач 3 | ✓
+Повідомлення 13 | Користувач 4 | ✓
+Повідомлення 14 | Користувач 5 | ✓
+Повідомлення 15 | Користувач 1 | ✓
+Повідомлення 16 | Користувач 2 | × (очікування 7.0с)
+Повідомлення 17 | Користувач 3 | × (очікування 6.9с)
+Повідомлення 18 | Користувач 4 | × (очікування 6.9с)
+Повідомлення 19 | Користувач 5 | × (очікування 7.7с)
+Повідомлення 20 | Користувач 1 | × (очікування 7.4с)
